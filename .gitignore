@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Datasets
+dataset/
+datasets/
+data/
+*.zip
+*.tar
+*.tar.gz
+
+# Model weights
+*.pth
+*.pt
+*.ckpt
+*.onnx
+weights/
+checkpoints/
+
+# Training outputs
+output/
+outputs/
+runs/
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# System
+.DS_Store

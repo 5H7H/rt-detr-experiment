@@ -1,0 +1,6 @@
+# Install torch and torchvision from the CUDA/ROCm-specific runtime or wheel
+# index. Do not replace the matched binaries with generic PyPI wheels.
+pycocotools
+PyYAML
+scipy
+transformers
