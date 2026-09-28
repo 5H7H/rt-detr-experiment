@@ -1,35 +1,32 @@
-# Python
+# Python and local environments
 __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
 venv/
-
-# Datasets
-dataset/
-datasets/
-data/
+# Only actual dataset directories, never src/data or configs/dataset
+/data/
+/datasets/
+/rtdetr_pytorch/configs/dataset/VisDrone/
+/rtdetr_pytorch/configs/dataset/visdrone_annotations/
 *.zip
 *.tar
 *.tar.gz
-
-# Model weights
+# Weights and run artifacts; lightweight published tables live in results/
 *.pth
 *.pt
 *.ckpt
 *.onnx
 weights/
 checkpoints/
-
-# Training outputs
 output/
 outputs/
 runs/
 logs/
-
-# IDE
+tmp/
+.env
+.env.*
+!.env.example
 .vscode/
 .idea/
-
-# System
 .DS_Store

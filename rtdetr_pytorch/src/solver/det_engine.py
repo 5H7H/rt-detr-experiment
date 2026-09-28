@@ -32,56 +32,72 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     ema = kwargs.get('ema', None)
     scaler = kwargs.get('scaler', None)
 
-    for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
+    accumulation_steps = int(kwargs.get('accumulation_steps', 1))
+    if accumulation_steps < 1:
+        raise ValueError('accumulation_steps must be at least 1')
+    num_batches = len(data_loader)
+    optimizer.zero_grad(set_to_none=True)
+    optimizer_steps = 0
+
+    for batch_index, (samples, targets) in enumerate(
+            metric_logger.log_every(data_loader, print_freq, header)):
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         if scaler is not None:
             with torch.autocast(device_type=str(device), cache_enabled=True):
                 outputs = model(samples, targets)
-            
             with torch.autocast(device_type=str(device), enabled=False):
                 loss_dict = criterion(outputs, targets)
-
-            loss = sum(loss_dict.values())
-            scaler.scale(loss).backward()
-            
-            if max_norm > 0:
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
-
-            scaler.step(optimizer)
-            scaler.update()
-            optimizer.zero_grad()
-
         else:
             outputs = model(samples, targets)
             loss_dict = criterion(outputs, targets)
-            
-            loss = sum(loss_dict.values())
-            optimizer.zero_grad()
-            loss.backward()
-            
-            if max_norm > 0:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
 
-            optimizer.step()
-        
-        # ema 
-        if ema is not None:
-            ema.update(model)
-
+        loss = sum(loss_dict.values())
         loss_dict_reduced = reduce_dict(loss_dict)
-        loss_value = sum(loss_dict_reduced.values())
-
+        loss_value = sum(loss_dict_reduced.values()).detach()
         if not math.isfinite(loss_value):
             print("Loss is {}, stopping training".format(loss_value))
             print(loss_dict_reduced)
             sys.exit(1)
 
+        # Normalize the final incomplete accumulation group by its actual size.
+        group_start = (batch_index // accumulation_steps) * accumulation_steps
+        group_size = min(accumulation_steps, num_batches - group_start)
+        backward_loss = loss / group_size
+        if scaler is not None:
+            scaler.scale(backward_loss).backward()
+        else:
+            backward_loss.backward()
+
+        update_now = ((batch_index + 1) % accumulation_steps == 0
+                      or batch_index + 1 == num_batches)
+        if update_now:
+            if scaler is not None and max_norm > 0:
+                scaler.unscale_(optimizer)
+            if max_norm > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+
+            step_succeeded = True
+            if scaler is not None:
+                previous_scale = scaler.get_scale()
+                scaler.step(optimizer)
+                scaler.update()
+                step_succeeded = scaler.get_scale() >= previous_scale
+            else:
+                optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+
+            if step_succeeded:
+                optimizer_steps += 1
+                if ema is not None:
+                    ema.update(model)
+
         metric_logger.update(loss=loss_value, **loss_dict_reduced)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
+    print('Optimizer updates:', optimizer_steps,
+          'accumulation steps:', accumulation_steps)
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)

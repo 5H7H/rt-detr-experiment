@@ -1,0 +1,6 @@
+__include__: [
+  './rtdetr_r18vd_6x_visdrone.yml',
+]
+
+epoches: 1
+output_dir: ./output/rtdetr_r18vd_1epoch_visdrone

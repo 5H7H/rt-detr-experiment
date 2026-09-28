@@ -1,0 +1,7 @@
+# Versions used by the completed R50/SGF experiments.
+# Install matched torch 2.9.1+cu128 / torchvision 0.24.1+cu128 separately.
+-r requirements.txt
+pycocotools==2.0.11
+PyYAML==6.0.3
+scipy==1.18.1
+transformers==4.57.6
