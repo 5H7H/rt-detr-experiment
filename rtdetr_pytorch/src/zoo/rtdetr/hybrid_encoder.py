@@ -179,6 +179,21 @@ class TransformerEncoder(nn.Module):
         return output
 
 
+class SpatialGatedFusion(nn.Module):
+    """Inject stride-4 S2 into top-down stride-8 F3, as defined in the proposal."""
+    def __init__(self, s2_channels, hidden_dim):
+        super().__init__()
+        self.space_to_depth = nn.PixelUnshuffle(2)
+        self.projection = ConvNormLayer(s2_channels * 4, hidden_dim, 1, 1, act='silu')
+        self.gate = nn.Conv2d(hidden_dim * 2, 1, kernel_size=1)
+        self.residual_scale = nn.Parameter(torch.zeros(()))
+
+    def forward(self, s2, f3):
+        x2 = self.projection(self.space_to_depth(s2))
+        gate = torch.sigmoid(self.gate(torch.cat([x2, f3], dim=1)))
+        return f3 + self.residual_scale * (gate * x2)
+
+
 @register
 class HybridEncoder(nn.Module):
     def __init__(self,
@@ -195,7 +210,8 @@ class HybridEncoder(nn.Module):
                  expansion=1.0,
                  depth_mult=1.0,
                  act='silu',
-                 eval_spatial_size=None):
+                 eval_spatial_size=None,
+                 sgf_s2_channels=None):
         super().__init__()
         self.in_channels = in_channels
         self.feat_strides = feat_strides
@@ -251,6 +267,8 @@ class HybridEncoder(nn.Module):
             )
 
         self._reset_parameters()
+        self.sgf = (SpatialGatedFusion(sgf_s2_channels, hidden_dim)
+                    if sgf_s2_channels is not None else None)
 
     def _reset_parameters(self):
         if self.eval_spatial_size:
@@ -281,6 +299,8 @@ class HybridEncoder(nn.Module):
         return torch.concat([out_w.sin(), out_w.cos(), out_h.sin(), out_h.cos()], dim=1)[None, :, :]
 
     def forward(self, feats):
+        if self.sgf is not None:
+            s2, feats = feats[0], feats[1:]
         assert len(feats) == len(self.in_channels)
         proj_feats = [self.input_proj[i](feat) for i, feat in enumerate(feats)]
         
@@ -310,6 +330,9 @@ class HybridEncoder(nn.Module):
             upsample_feat = F.interpolate(feat_high, scale_factor=2., mode='nearest')
             inner_out = self.fpn_blocks[len(self.in_channels)-1-idx](torch.concat([upsample_feat, feat_low], dim=1))
             inner_outs.insert(0, inner_out)
+
+        if self.sgf is not None:
+            inner_outs[0] = self.sgf(s2, inner_outs[0])
 
         outs = [inner_outs[0]]
         for idx in range(len(self.in_channels) - 1):

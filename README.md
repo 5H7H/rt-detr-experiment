@@ -1,142 +1,47 @@
-English | [简体中文](README_cn.md)
+# RT-DETR / SGF-DETR：VisDrone 小目标检测实验
 
-> 本地工作区已为“小目标检测研究”做过精简。请先看 [START_HERE_CN.md](START_HERE_CN.md)，官方 README 仅作为出处和背景参考。
+本仓库基于 [RT-DETR 官方实现](https://github.com/lyuwenyu/RT-DETR)，研究将 stride-4 的 S2 特征通过空间门控残差融合注入 R50 的 stride-8 F3。它是个人研究实验仓库，不是 RT-DETR 官方仓库。
 
+## 从哪里开始
 
-<h2 align="center">RT-DETR: DETRs Beat YOLOs on Real-time Object Detection</h2>
-<p align="center">
-    <!-- <a href="https://github.com/lyuwenyu/RT-DETR/blob/main/LICENSE">
-        <img alt="license" src="https://img.shields.io/badge/LICENSE-Apache%202.0-blue">
-    </a> -->
-    <a href="https://github.com/lyuwenyu/RT-DETR/blob/main/LICENSE">
-        <img alt="license" src="https://img.shields.io/github/license/lyuwenyu/RT-DETR">
-    </a>
-    <a href="https://github.com/lyuwenyu/RT-DETR/pulls">
-        <img alt="prs" src="https://img.shields.io/github/issues-pr/lyuwenyu/RT-DETR">
-    </a>
-    <a href="https://github.com/lyuwenyu/RT-DETR/issues">
-        <img alt="issues" src="https://img.shields.io/github/issues/lyuwenyu/RT-DETR?color=pink">
-    </a>
-    <a href="https://github.com/lyuwenyu/RT-DETR">
-        <img alt="issues" src="https://img.shields.io/github/stars/lyuwenyu/RT-DETR">
-    </a>
-    <a href="https://arxiv.org/abs/2304.08069">
-        <img alt="arXiv" src="https://img.shields.io/badge/arXiv-2304.08069-red">
-    </a>
-    <a href="mailto: lyuwenyu@foxmail.com">
-        <img alt="emal" src="https://img.shields.io/badge/contact_me-email-yellow">
-    </a>
-</p>
+| 目的 | 入口 |
+|---|---|
+| 理解 SGF 结构 | [结构与代码位置](docs/architecture.md) |
+| 安装、准备数据、训练 | [运行说明](docs/setup/server.md) |
+| 核对实验参数与评估口径 | [实验记录](docs/experiments.md) |
+| 查看结果 | [结果表与完整曲线数据](results/baseline_vs_sgf/README.md) |
+| 读取日志、λ、各类别 AP | [分析脚本说明](docs/analysis.md) |
 
----
+## 已完成实验
 
+VisDrone train 6471 张 / val 548 张；R50、72 epochs、seed 42、batch 1、梯度累积 4、AMP、EMA。下表为最后一轮 EMA 验证结果，单位为 %。
 
-This is the official implementation of papers 
-- [DETRs Beat YOLOs on Real-time Object Detection](https://arxiv.org/abs/2304.08069)
-- [RT-DETRv2: Improved Baseline with Bag-of-Freebies for Real-Time Detection Transformer](https://arxiv.org/abs/2407.17140)
+| 模型 | AP | AP50 | AP75 | AP small | AP medium | AP large |
+|---|---:|---:|---:|---:|---:|---:|
+| R50 baseline | 25.401 | 43.692 | 24.723 | 15.757 | 36.076 | 45.774 |
+| SGF-DETR | 25.504 | 44.069 | 24.815 | 15.904 | 35.989 | 47.149 |
 
+这是单随机种子的结果：小目标 AP 增加约 0.146 个百分点，尚不能证明稳定提升。两组最佳总 AP 和最佳小目标 AP 均在第 72 轮。尚未完成重复种子实验、门控消融和 FLOPs/FPS 测量。
 
-<details>
-<summary>Fig</summary>
+## 目录
 
-<table><tr>
-<td><img src=https://github.com/lyuwenyu/RT-DETR/assets/77494834/0ede1dc1-a854-43b6-9986-cf9090f11a61 border=0 width=500></td>
-<td><img src=https://github.com/user-attachments/assets/437877e9-1d4f-4d30-85e8-aafacfa0ec56 border=0 width=500></td>
-</tr></table>
-</details>
-
-
-## 🚀 Updates
-- \[2025.11.18\] Release the **newest** member of the RT-DETR family: [RT-DETRv4:Painlessly Furthering Real-Time Object Detection with Vision Foundation Models](https://github.com/RT-DETRs/RT-DETRv4).
-By harnessing the rapidly evolving capabilities of Vision Foundation Models (VFMs), we boost lightweight detectors and, without incurring any extra inference latency, significantly improve the performance of the full-size model.
-- \[2024.11.28\] Add torch tool for parameters and flops statistics. see [run_profile.py](./rtdetrv2_pytorch/tools/run_profile.py)
-- \[2024.10.10\] Add sliced inference support for small object detecion. [#468](https://github.com/lyuwenyu/RT-DETR/pull/468)
-- \[2024.09.23\] Add ✅[Regnet and DLA34](https://github.com/lyuwenyu/RT-DETR/tree/main/rtdetr_pytorch) for RTDETR.
-- \[2024.08.27\] Add hubconf.py file to support torch hub.
-- \[2024.08.22\] Improve the performance of ✅ [RT-DETRv2-S](./rtdetrv2_pytorch/) to 48.1 mAP (<font color=green>+1.6</font> compared to RT-DETR-R18).
-- \[2024.07.24\] Release ✅ [RT-DETRv2](./rtdetrv2_pytorch/)!
-- \[2024.02.27\] Our work has been accepted to CVPR 2024!
-- \[2024.01.23\] Fix difference on data augmentation with paper in rtdetr_pytorch [#84](https://github.com/lyuwenyu/RT-DETR/commit/5dc64138e439247b4e707dd6cebfe19d8d77f5b1).
-- \[2023.11.07\] Add pytorch ✅ *rtdetr_r34vd* for requests [#107](https://github.com/lyuwenyu/RT-DETR/issues/107), [#114](https://github.com/lyuwenyu/RT-DETR/issues/114).
-- \[2023.11.05\] Upgrade the logic of `remap_mscoco_category` to facilitate training of custom datasets, see detils in [*Train custom data*](./rtdetr_pytorch/) part. [#81](https://github.com/lyuwenyu/RT-DETR/commit/95fc522fd7cf26c64ffd2ad0c622c392d29a9ebf).
-- \[2023.10.23\] Add [*discussion for deployments*](https://github.com/lyuwenyu/RT-DETR/issues/95), supported onnxruntime, TensorRT, openVINO.
-- \[2023.10.12\] Add tuning code for pytorch version, now you can tuning rtdetr based on pretrained weights.
-- \[2023.09.19\] Upload ✅ [*pytorch weights*](https://github.com/lyuwenyu/RT-DETR/issues/42) convert from paddle version.
-- \[2023.08.24] Release RT-DETR-R18 pretrained models on objects365. *49.2 mAP* and *217 FPS*.
-- \[2023.08.22\] Upload ✅ [*rtdetr_pytorch*](./rtdetr_pytorch/) source code. Please enjoy it!
-- \[2023.08.15\] Release RT-DETR-R101 pretrained models on objects365. *56.2 mAP* and *74 FPS*.
-- \[2023.07.30\] Release RT-DETR-R50 pretrained models on objects365. *55.3 mAP* and *108 FPS*.
-- \[2023.07.28\] Fix some bugs, and add some comments. [1](https://github.com/lyuwenyu/RT-DETR/pull/14), [2](https://github.com/lyuwenyu/RT-DETR/commit/3b5cbcf8ae3b907e6b8bb65498a6be7c6736eabc).
-- \[2023.07.13\] Upload ✅ [*training logs on coco*](https://github.com/lyuwenyu/RT-DETR/issues/8).
-- \[2023.05.17\] Release RT-DETR-R18, RT-DETR-R34, RT-DETR-R50-m（example for scaled).
-- \[2023.04.17\] Release RT-DETR-R50, RT-DETR-R101, RT-DETR-L, RT-DETR-X.
-
-## 📣 News
-- RTDETR and RTDETRv2 are now available in Hugging Face Transformers. [#413](https://github.com/lyuwenyu/RT-DETR/issues/413), [#549](https://github.com/lyuwenyu/RT-DETR/issues/549)
-- RTDETR is now available in [ultralytics/ultralytics](https://docs.ultralytics.com/zh/models/rtdetr/).
-
-## 📍 Implementations
-- 🔥 RT-DETRv2
-  - paddle: [code&weight](./rtdetrv2_paddle/)
-  - pytorch: [code&weight](./rtdetrv2_pytorch/)
-- 🔥 RT-DETR 
-  - paddle: [code&weight](./rtdetr_paddle)
-  - pytorch: [code&weight](./rtdetr_pytorch)
-
-
-| Model | Input shape | Dataset | $AP^{val}$ | $AP^{val}_{50}$| Params(M) | FLOPs(G) | T4 TensorRT FP16(FPS)
-|:---:|:---:| :---:|:---:|:---:|:---:|:---:|:---:|
-| RT-DETR-R18 | 640 | COCO | 46.5 | 63.8 | 20 | 60 | 217 |
-| RT-DETR-R34 | 640 | COCO | 48.9 | 66.8 | 31 | 92 | 161 |
-| RT-DETR-R50-m | 640 | COCO | 51.3 | 69.6 | 36 | 100 | 145 |
-| RT-DETR-R50 |  640 | COCO | 53.1 | 71.3 | 42 | 136 | 108 |
-| RT-DETR-R101 | 640 | COCO | 54.3 | 72.7 | 76 | 259 | 74 |
-| RT-DETR-HGNetv2-L | 640 | COCO | 53.0 | 71.6 | 32 | 110 | 114 |
-| RT-DETR-HGNetv2-X | 640 | COCO | 54.8 | 73.1 | 67 | 234 | 74 |
-| RT-DETR-R18 | 640 | COCO + Objects365 | **49.2** | **66.6** | 20 | 60 | **217** |
-| RT-DETR-R50 | 640 | COCO + Objects365 | **55.3** | **73.4** | 42 | 136 | **108** |
-| RT-DETR-R101 | 640 | COCO + Objects365 | **56.2** | **74.6** | 76 | 259 | **74** |
-**RT-DETRv2-S** | 640 | COCO  | **48.1** <font color=green>(+1.6)</font> | **65.1** | 20 | 60 | 217 |
-**RT-DETRv2-M**<sup>*<sup> | 640 | COCO  | **49.9** <font color=green>(+1.0)</font> | **67.5** | 31 | 92 | 161 |
-**RT-DETRv2-M** | 640 | COCO | **51.9** <font color=green>(+0.6)</font> | **69.9** | 36 | 100 | 145 |
-**RT-DETRv2-L** | 640 | COCO | **53.4** <font color=green>(+0.3)</font> | **71.6** | 42 | 136 | 108 |
-**RT-DETRv2-X** | 640 | COCO | 54.3 | **72.8** <font color=green>(+0.1)</font>  | 76 | 259| 74 |
-
-**Notes:**
-- `COCO + Objects365` in the table means finetuned model on COCO using pretrained weights trained on Objects365.
-
-
-## 🦄 Performance
-
-### 🏕️ Complex Scenarios
-<div align="center">
-  <img src="https://github.com/lyuwenyu/RT-DETR/assets/77494834/52743892-68c8-4e53-b782-9f89221739e4" width=500 >
-</div>
-
-### 🌋 Difficult Conditions
-<div align="center">
-  <img src="https://github.com/lyuwenyu/RT-DETR/assets/77494834/213cf795-6da6-4261-8549-11947292d3cb" width=500 >
-</div>
-
-## Citation
-If you use `RT-DETR` or `RTDETRv2` in your work, please use the following BibTeX entries:
+```text
+docs/                  结构、运行、实验与分析说明
+results/               轻量指标与逐轮日志（不含权重）
+rtdetr_pytorch/
+  src/                 完整模型、数据加载和训练代码
+  configs/experiments/ 基线与 SGF 两个实验入口
+  configs/dataset/     数据路径及类别配置（不是数据集本体）
+  tools/               训练、初始化和分析脚本
+  tests/               SGF 的输出等价性与梯度验证
 ```
-@misc{lv2023detrs,
-      title={DETRs Beat YOLOs on Real-time Object Detection},
-      author={Yian Zhao and Wenyu Lv and Shangliang Xu and Jinman Wei and Guanzhong Wang and Qingqing Dang and Yi Liu and Jie Chen},
-      year={2023},
-      eprint={2304.08069},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
-}
 
-@misc{lv2024rtdetrv2improvedbaselinebagoffreebies,
-      title={RT-DETRv2: Improved Baseline with Bag-of-Freebies for Real-Time Detection Transformer}, 
-      author={Wenyu Lv and Yian Zhao and Qinyao Chang and Kui Huang and Guanzhong Wang and Yi Liu},
-      year={2024},
-      eprint={2407.17140},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2407.17140}, 
-}
-```
+网络关键文件是 `rtdetr_pytorch/src/zoo/rtdetr/hybrid_encoder.py`。同一代码通过 `sgf_s2_channels: null` 使用基线，通过 `256` 启用 R50 的 SGF 分支。
+
+数据集、模型权重、环境、完整训练输出不上传 GitHub。训练前按说明设置数据路径，并为每次运行选择新的输出目录。
+
+原始官方文档保留在 [docs/upstream](docs/upstream)，旧 Windows/AMD 环境教程保留在 [docs/setup](docs/setup)。这些旧文档中的模型成绩和命令不代表本次实验。
+
+## 来源与许可
+
+保留上游 [Apache-2.0 LICENSE](LICENSE)。RT-DETR 来源与论文引用见 [上游 README](docs/upstream/README.md)。SGF 为本仓库的实验性扩展；GFF 是门控融合设计的参考，而非本实现的同名复现。

@@ -1,0 +1,7 @@
+__include__:
+- ./r50_baseline_72ep.yml
+output_dir: ./output/sgf_r50_72ep
+PResNet:
+  return_idx: [0, 1, 2, 3]
+HybridEncoder:
+  sgf_s2_channels: 256

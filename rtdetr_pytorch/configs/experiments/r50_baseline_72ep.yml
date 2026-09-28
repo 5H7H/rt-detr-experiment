@@ -1,0 +1,23 @@
+__include__:
+- ../dataset/visdrone_detection.yml
+- ../runtime.yml
+- ../rtdetr/include/dataloader.yml
+- ../rtdetr/include/optimizer.yml
+- ../rtdetr/include/rtdetr_r50vd.yml
+
+epoches: 72
+output_dir: ./output/r50_baseline_72ep
+use_amp: true
+log_step: 100
+checkpoint_step: 1
+accumulation_steps: 4
+HybridEncoder:
+  sgf_s2_channels: null
+train_dataloader:
+  batch_size: 1
+  num_workers: 2
+  drop_last: false
+val_dataloader:
+  batch_size: 1
+  num_workers: 2
+  drop_last: false
